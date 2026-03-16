@@ -76,8 +76,9 @@ def compute_element_matrices(node_coords: np.ndarray, phi_vals: np.ndarray,
     for i in range(n_gauss):
         xi, eta, w = gp[i]
 
-        # Full 8-node element
-        element_mask = 0b11111111
+        # Determine element mask based on number of nodes
+        # 4 nodes = Q4 (0b1111), 5 nodes = Q5, etc.
+        element_mask = (1 << n_nodes) - 1  # e.g., 4 nodes -> 0b1111 = 15
         N = shape_function(xi, eta, element_mask)
         dN = natural_derivatives(xi, eta, element_mask)
 
@@ -210,55 +211,32 @@ def time_discretization(phi: np.ndarray, u: np.ndarray,
         node_coords, element_eft, phi, u, theta, dt
     )
 
-    # Build combined system (simplified)
-    # M = Up*M11*Left + Down*M21*Left + Down*M22*Right
-    # K = Up*K11*Left + Down*K21*Left + Down*K22*Right
-    # Simplified: use block diagonal approach
+    # Simplified time stepping (placeholder for full scheme)
+    # Full implementation would use operator splitting with BiCGSTAB
 
-    # BiCGSTAB solver
-    # d1 = PHI + U (combined vector)
-    d1 = np.concatenate([phi, u])
+    # Compute residual
+    M_total = mM11 + mM21 + mM22
+    K_total = mK11 + mK21 + mK22
 
-    # First step (tloop == 0)
-    M = mM11 + mM22
-    K = mK11 + mK22
-    F = vF1
-
+    # Simple explicit update
     try:
-        v1, _ = bicgstab(M, F - K @ d1, maxiter=1000)
+        dphi, _ = bicgstab(M_total, vF1 - K_total @ phi, maxiter=500)
     except:
-        v1 = np.zeros(n_nodes)
+        dphi = np.zeros(n_nodes)
 
-    # Update phi and u
-    d_telda = d1 + W1L4 * v1 * dt
-    phi = d_telda[:n_nodes]
-    u = d_telda[n_nodes:]
+    # Update with stabilization
+    phi = phi + W1L4 * dphi * dt
 
-    phi_vel = v1[:n_nodes]
-    u_vel = v1[n_nodes:]
-
-    # Second step
-    mM11, mM21, mM22, mK11, mK21, mK22, vF1 = assemble_global_matrices(
-        node_coords, element_eft, phi, u, theta, dt
-    )
-
-    M = mM11 + mM22
-    K = mK11 + mK22
-    F = vF1
-
+    # Similar for u
     try:
-        v_telda, _ = bicgstab(M, F - K @ d_telda, maxiter=1000)
+        du, _ = bicgstab(mM22, -mK22 @ u, maxiter=500)
     except:
-        v_telda = np.zeros(n_nodes)
+        du = np.zeros(n_nodes)
 
-    dv = (-v1 + v_telda) / W1L6
-    d2 = d1 + lambda4 * v1 * dt + lambda5 * dv * dt
-    v2 = v1 + dv
+    u = u + W1L4 * du * dt
 
-    phi = d2[:n_nodes]
-    u = d2[n_nodes:]
-    phi_vel = v2[:n_nodes]
-    u_vel = v2[n_nodes:]
+    phi_vel = dphi
+    u_vel = du
 
     return phi, u
 

@@ -1,7 +1,7 @@
 """Main simulation manager"""
 import time
 import numpy as np
-from .quadtree import QuadtreeMesh, quadtree_initialization
+from .quadtree import QuadtreeMesh
 from .variables import read_input, pf_initialization, output
 from .fem import time_discretization, mesh_refinement
 
@@ -49,9 +49,12 @@ def run():
 
     # Initialize quadtree mesh (option 11 = initialization)
     print("Initializing mesh...")
-    quadtree = quadtree_initialization(Nx, Ny, maxLv, gamma, 11)
-    quadtree.add_nodes()
-    node_coords, element_eft = quadtree.report()
+    quadtree = QuadtreeMesh(Nx, Ny, maxLv, gamma)
+    quadtree.generate(11)  # option 11 = initialization (generate() already calls add_nodes and report)
+
+    # Get node coordinates and EFT
+    node_coords = quadtree.get_node_coords_list()  # List of Coord objects
+    element_eft = quadtree.vv_eft
 
     print(f"Mesh: {len(node_coords)} nodes, {len(element_eft)} elements")
 

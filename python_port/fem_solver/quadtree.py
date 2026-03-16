@@ -597,6 +597,10 @@ class QuadtreeMesh:
             coords[i, 1] = coord.y
         return coords
 
+    def get_node_coords_list(self) -> List[Coord]:
+        """Get node coordinates as list of Coord objects"""
+        return self.vc_node_coordinates
+
     def get_elements(self) -> List[Element]:
         """Get leaf elements"""
         elements = []
