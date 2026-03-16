@@ -1,4 +1,4 @@
-name: FEM
+name: freeze-casting-fem
 channels:
   - conda-forge
   - defaults
@@ -7,6 +7,8 @@ dependencies:
   - numpy>=1.21
   - scipy>=1.7
   - matplotlib>=3.5
-  - pip
-  - pip:
-    - dolfin>=2019.1
+  - h5py>=3.6
+  - pyyaml>=6.0
+  - tqdm>=4.62
+  - dolfin
+  - fenics-dolfin
